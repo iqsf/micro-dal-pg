@@ -10,8 +10,8 @@ mkDerivation {
   version = "0.1.0.0";
   src = fetchgit {
     url = "https://github.com/ivanovs-4/micro-dal";
-    sha256 = "07d3fv33mqsncqm0h2g781asr4wxsjygwj3bwifyyjr9pbmkf38y";
-    rev = "ffad8b1c362485ef1513d7ca7f3dcd425c868d1a";
+    sha256 = "1q2dyhf3kvksr3cxmq1iczg10na8rpac7ah4n1f1rys94j81z0pg";
+    rev = "79b9e534fc93de351394b39935ca7d93cee1e63d";
     fetchSubmodules = true;
   };
   libraryHaskellDepends = [

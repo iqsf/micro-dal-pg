@@ -25,7 +25,7 @@ import Test.Hspec.NeedEnv (EnvMode(Want), needEnv, needEnvRead)
 
 import Data.DAL
 import Data.DAL.KeyValue.HashRef
-import Data.DAL.KeyValue.S3
+import Data.DAL.KeyValue.Postgres
 
 data SomeData = SomeData Word32 Word32
                 deriving (Eq,Ord,Show,Data,Generic)
@@ -49,27 +49,28 @@ instance Store HashedInt
 instance Arbitrary SomeData where
   arbitrary = SomeData <$> arbitrary <*> arbitrary
 
-getEnvs :: IO S3EngineOpts
+getEnvs :: IO PGEngineOpts
 getEnvs = do
-    s3Address   <- cs <$> needEnv mode "TEST_S3_ADDR"
-    s3AccessKey <- cs <$> needEnv mode "TEST_S3_ACCESS_KEY"
-    s3SecretKey <- cs <$> needEnv mode "TEST_S3_SECRET_KEY"
-    s3Bucket    <- cs <$> needEnv mode "TEST_S3_BUCKET"
-    s3Region    <- cs <$> needEnv mode "TEST_S3_REGION"
-    pure S3EngineOpts {..}
+    pgHost      <- cs <$> needEnv mode "TEST_PG_DBHOST"
+    pgPort      <-    needEnvRead mode "TEST_PG_DBPORT"
+    pgUser      <- cs <$> needEnv mode "TEST_PG_DBUSER"
+    pgPassword  <- cs <$> needEnv mode "TEST_PG_DBPASSWORD"
+    pgDbName    <- cs <$> needEnv mode "TEST_PG_DBNAME"
+    pure PGEngineOpts {..}
     where
       mode = Want
 
 spec :: Spec
-spec = before (createEngine =<< getEnvs) specWithS3
+spec = before (createEngine =<< getEnvs) specWithPG
 
-specWithS3 :: SpecWith S3Engine
-specWithS3 = do
+specWithPG :: SpecWith PGEngine
+specWithPG = do
 
-  describe "DAL S3 simple load/store test" $ do
+  describe "DAL PG simple load/store test" $ do
     it "stores some random SomeData values and restores them" $ \eng -> do
 
-      replicateM_ 5 $ do
+      replicateM_ 100 $ do
+        withTransaction eng $ do
 
           v1 <- generate arbitrary :: IO SomeData
           k1 <- store eng v1
@@ -77,12 +78,12 @@ specWithS3 = do
 
           v2 `shouldBe` Just v1
 
-
-  describe "DAL S3 simple store/loadAll test" $ do
+  describe "DAL PG simple store/loadAll test" $ do
     it "stores some random SomeData values and restores them" $ \eng -> do
 
-      replicateM_ 1 $ do
-          cleanEngine eng
+      replicateM_ 100 $ do
+        withTransaction eng $ do
+          deleteAll (Proxy @SomeData) eng
 
           els  <- Map.fromList <$> generate arbitrary :: IO (Map Word32 Word32)
           let vals  = [ SomeData k v | (k,v) <- Map.toList els ]
@@ -92,11 +93,11 @@ specWithS3 = do
           (sort vals2) `shouldMatchList` (sort vals)
 
 
-  describe "DAL S3 HashRef test" $ do
+  describe "DAL PG HashRef test" $ do
     it "stores and restores some random values using HashRef" $ \eng -> do
 
-      replicateM_ 2 $ do
-          cleanEngine eng
+      replicateM_ 10 $ do
+        withTransaction eng $ do
 
           ivalues <- generate arbitrary :: IO [Int]
           forM_ ivalues $ \i -> do
@@ -105,13 +106,14 @@ specWithS3 = do
             Just i `shouldBe` (fromJust $ hashRefUnpack <$> ii)
 
 
-  describe "DAL S3 delete test" $ do
+  describe "DAL PG delete test" $ do
     it "stores and restores some random values using HashRef and deletes odds" $ \eng -> do
 
-      replicateM_ 2 $ do
-          cleanEngine eng
+      replicateM_ 10 $ do
+        withTransaction eng $ do
+          deleteAll (Proxy @HashedInt) eng
 
-          let ivalues = [1..10]
+          let ivalues = [1..200]
 
           forM_ ivalues $ \i -> do
             store @HashedInt eng (hashRefPack i)
@@ -119,24 +121,10 @@ specWithS3 = do
           hvals <- listAll @HashedInt eng
           ivals <- (catMaybes . fmap hashRefUnpack) <$> pure hvals
 
-          ivalues `shouldMatchList` ivals
+          sort ivalues `shouldMatchList` sort ivals
 
           forM_ (filter odd ivalues) $ \v -> do
             delete @HashedInt eng (key (hashRefPack v))
 
           ivals2 <- fmap sort $ (catMaybes . fmap hashRefUnpack) <$> listAll @HashedInt eng
           ivals2 `shouldMatchList` (filter even ivalues)
-
-
-      cleanEngine eng
-
-  describe "DAL S3 load nonexistent object" $ do
-    it "tries to load nonexistent key" $ \eng -> do
-
-          cleanEngine eng
-
-          v <- generate arbitrary :: IO SomeData
-
-          v' <- load @SomeData eng (key v)
-
-          v' `shouldBe` Nothing

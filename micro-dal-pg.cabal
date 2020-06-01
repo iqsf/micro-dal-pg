@@ -19,22 +19,14 @@ common deps
                  , micro-dal
                      , base58-bytestring
                      , bytestring
-                     , conduit
-                     , cryptonite
-                     , exceptions
-                     , filepath
-                     , http-client
-                     , http-client-tls
+                     , containers
                      , interpolatedstring-perl6
                      , memory
                      , postgresql-simple
                      , safe
-                     , sqlite-simple
                      , store
                      , string-conversions
                      , text
-                     , unliftio
-  hs-source-dirs:      src
   default-language:    Haskell2010
   default-extensions:  BangPatterns
                      , ConstraintKinds
@@ -60,11 +52,20 @@ common deps
 
 library
   import: deps
+  hs-source-dirs:      src
   exposed-modules:     Data.DAL.KeyValue.Postgres
 
 test-suite micro-dal-pg-test
   import: deps
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
+                     , src
   main-is:             Spec.hs
+  exposed-modules:     Data.DAL.KeyValue.PostgresSpec
+  build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:       base ^>=4.13.0.0
+                 , hspec
+                 , hspec-discover
+                 , hspec-expectations
+                 , hspec-need-env
+                 , QuickCheck

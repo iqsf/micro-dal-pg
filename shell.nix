@@ -14,8 +14,11 @@ in pkgs.haskellPackages.shellFor {
 
   shellHook = ''
         export PGDATA=./db
+        export PGHOST=/tmp
         export PGPORT=5435
-        function psql-repl { pgcli --host /tmp -p $PGPORT localDb; }
+        export DBNAME=localDb
+        export DBUSER=localDb
+        function psql-repl { pgcli --host $PGHOST -p $PGPORT $DBNAME; }
         function cleanup {
           echo "Stopping DB..."
           pg_ctl stop
@@ -29,12 +32,19 @@ in pkgs.haskellPackages.shellFor {
           LANG=C LC_ALL=C initdb
           sed -i -E -e 's/^#\s*(unix_socket_directories\s*=\s*).*$/\1'"'"'\/tmp'"'"'/' ./db/postgresql.conf
           pg_ctl -D $PGDATA -l $PGDATA.log start
-          sleep 4
-          createuser -p $PGPORT localDb --superuser --host /tmp
-          createdb -p $PGPORT localDb --owner localDb -w --host /tmp
+          sleep 3
+          createuser $DBUSER --superuser --host $PGHOST -p $PGPORT
+          createdb $DBNAME --owner $DBUSER -w --host $PGHOST -p $PGPORT
         else
           pg_ctl -D $PGDATA -l $PGDATA.log start
         fi
+
+        export TEST_PG_DBHOST=$PGHOST
+        export TEST_PG_DBPORT=$PGPORT
+        export TEST_PG_DBUSER=$DBUSER
+        export TEST_PG_DBPASSWORD=""
+        export TEST_PG_DBNAME=$DBNAME
+
     '';
 
 }
