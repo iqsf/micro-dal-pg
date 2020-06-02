@@ -40,6 +40,14 @@ data PGEngine = PGEngine
   }
 conn = pgEngine'conn
 
+nsUnpackNorm :: NS a -> String
+nsUnpackNorm = nsNorm . nsUnpack
+
+nsNorm :: String -> String
+nsNorm = replaceSyms "/-" '_'
+  where
+    replaceSyms what replacement = fmap $ \c -> if c `elem` what then replacement else c
+
 data PGEngineOpts = PGEngineOpts
                         { pgHost      :: Text
                         , pgPort      :: Word16
@@ -74,7 +82,7 @@ instance (Store a, HasKey a) => SourceListAll a IO PGEngine where
         query_ (conn e) [qc|select v from {table}|] :: IO [Only (Binary ByteString)]
     pure $ rights $ fmap (\(Only x) -> decode @a (fromBinary x)) rows
     where
-      table = nsUnpack (ns @a)
+      table = nsUnpackNorm (ns @a)
 
 instance (Store a, Store (KeyOf a), HasKey a) => SourceStore a IO PGEngine where
   load :: PGEngine -> KeyOf a -> IO (Maybe a)
@@ -85,7 +93,7 @@ instance (Store a, Store (KeyOf a), HasKey a) => SourceStore a IO PGEngine where
       Just (Only v) -> pure $ either (const Nothing) (Just) (decode @a (fromBinary v))
       _             -> pure Nothing
     where
-      table = nsUnpack (ns @a)
+      table = nsUnpackNorm (ns @a)
 
   store :: PGEngine -> a -> IO (KeyOf a)
   store e v = do
@@ -93,7 +101,7 @@ instance (Store a, Store (KeyOf a), HasKey a) => SourceStore a IO PGEngine where
       execute (conn e) [qc|insert into {table} (k,v) values(?,?) on conflict (k) do update set v=excluded.v|] (bkey,bval)
     pure (key v)
     where
-      table = nsUnpack (ns @a)
+      table = nsUnpackNorm (ns @a)
       bkey  = Binary $ encode (key v)
       bval  = Binary $ encode v
 
@@ -122,7 +130,7 @@ instance (Store a, Store (KeyOf a), HasKey a) => SourceDeleteByKey a IO PGEngine
   delete e k = do
     void $ execute (conn e) [qc|delete from {table} where k = ?|] (Only (Binary $ encode k))
     where
-      table = nsUnpack (ns @a)
+      table = nsUnpackNorm (ns @a)
 
 instance forall a. (Store a, Store (KeyOf a), HasKey a) => SourceDeleteAll a IO PGEngine where
   deleteAll :: Proxy a -> PGEngine -> IO ()
@@ -130,7 +138,7 @@ instance forall a. (Store a, Store (KeyOf a), HasKey a) => SourceDeleteAll a IO 
     void $ withCreateTable e table $
         execute_ (conn e) [qc|delete from {table}|]
     where
-      table = nsUnpack (ns @a)
+      table = nsUnpackNorm (ns @a)
 
 
 instance SourceTransaction a IO PGEngine where
