@@ -13,6 +13,7 @@ import Control.Exception
 import Control.Monad
 import Data.ByteString (ByteString)
 import Data.Either
+import Data.Int
 import Data.Proxy
 import Data.Store
 import Data.String (IsString(..))
