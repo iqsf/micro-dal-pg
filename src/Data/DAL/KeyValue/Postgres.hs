@@ -140,6 +140,19 @@ instance forall a. (Store a, Store (KeyOf a), HasKey a) => SourceDeleteAll a IO 
     where
       table = nsUnpackNorm (ns @a)
 
+instance forall a. (Store a, Store (KeyOf a), HasKey a) => SourceCountAll a IO PGEngine where
+   countAll :: Proxy a -> PGEngine -> IO Int64
+   countAll _ e = do
+     let conn = pgEngine'conn e
+     getCount $ query_ conn [qc|select count(*) from {table}|]
+     where
+       table = nsUnpackNorm (ns @a)
+
+       getCount :: IO [Only Int64] -> IO Int64
+       getCount ioa = do
+         [Only countVal] <- catch ioa $ \SqlError {..} -> pure [Only 0]
+         pure countVal
+
 
 instance SourceTransaction a IO PGEngine where
   withTransaction e = PGSimple.withTransaction (conn e)

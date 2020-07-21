@@ -9,9 +9,9 @@ mkDerivation {
   pname = "micro-dal";
   version = "0.1.0.0";
   src = fetchgit {
-    url = "https://github.com/ivanovs-4/micro-dal";
-    sha256 = "1q2dyhf3kvksr3cxmq1iczg10na8rpac7ah4n1f1rys94j81z0pg";
-    rev = "79b9e534fc93de351394b39935ca7d93cee1e63d";
+    url = "https://github.com/iqsf/micro-dal";
+    sha256 = "1788qg49s0m61p7d5l2qf5z1mqw22bxr8sz38gkhqp13fx3ywp6j";
+    rev = "1f68e6380e3c3d28e3cee0487019fa178182a2dc";
     fetchSubmodules = true;
   };
   libraryHaskellDepends = [
