@@ -85,6 +85,15 @@ instance (Store a, HasKey a) => SourceListAll a IO PGEngine where
     where
       table = nsUnpackNorm (ns @a)
 
+instance (Store a, HasKey a) => SourceListOffsetLimit a IO PGEngine where
+  listOffsetLimit :: PGEngine -> Int -> Int -> IO [a]
+  listOffsetLimit e ofs lmt = do
+    rows <- withCreateTable e table $
+        query_ (conn e) [qc|select v from {table} limit {ofs} offset {lmt}|] :: IO [Only (Binary ByteString)]
+    pure $ rights $ fmap (\(Only x) -> decode @a (fromBinary x)) rows
+    where
+      table = nsUnpackNorm (ns @a)
+
 instance (Store a, Store (KeyOf a), HasKey a) => SourceStore a IO PGEngine where
   load :: PGEngine -> KeyOf a -> IO (Maybe a)
   load e k = do

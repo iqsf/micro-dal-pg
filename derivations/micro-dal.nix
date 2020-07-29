@@ -11,7 +11,7 @@ mkDerivation {
   src = fetchgit {
     url = "https://github.com/iqsf/micro-dal";
     sha256 = "1788qg49s0m61p7d5l2qf5z1mqw22bxr8sz38gkhqp13fx3ywp6j";
-    rev = "1f68e6380e3c3d28e3cee0487019fa178182a2dc";
+    rev = "4e22900ba30944bf1c12e56afaed7978ac1713ba";
     fetchSubmodules = true;
   };
   libraryHaskellDepends = [
