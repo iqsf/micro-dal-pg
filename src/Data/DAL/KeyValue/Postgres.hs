@@ -102,7 +102,7 @@ instance (Store a, HasKey a, HasConnection (PGEngine' c))
     where
       table = nsUnpackNorm (ns @a)
 
-instance (Store a, HasKey a, HasConnection (PGEngine' c)))
+instance (Store a, HasKey a, HasConnection (PGEngine' c))
   => SourceListOffsetLimit a IO PGEngine where
 
   listOffsetLimit :: PGEngine' c -> Int -> Int -> IO [a]
